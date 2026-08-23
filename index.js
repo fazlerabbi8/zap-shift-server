@@ -27,6 +27,22 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
 
+    const db = client.db("zap-shift-db");
+    const parcelsCollection = db.collection("parcels")
+
+
+    app.get('/parcels', async(req, res)=>{
+
+    })
+
+    app.post('parcels', async(req, res) =>{
+        const parcel = req.body;
+        const result = await parcelsCollection.insertOne(parcel);
+        res.send(result);
+    })
+
+
+
     // all apis from here
 
     // Send a ping to confirm a successful connection
