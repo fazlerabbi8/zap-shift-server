@@ -4,6 +4,7 @@ const cors = require("cors");
 require("dotenv").config();
 const port = process.env.PORT || 5000;
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const stripe = require("stripe")(process.env.STRIPE_KEY);
 
 const dns = require("dns");
 dns.setServers(["8.8.8.8", "8.8.4.4"]);
@@ -40,14 +41,13 @@ async function run() {
       res.send(result);
     });
 
-    app.get('/parcels/:id', async(req, res) => {
+    app.get("/parcels/:id", async (req, res) => {
       const id = req.params.id;
-      const query = {_id: new ObjectId(id)};
+      const query = { _id: new ObjectId(id) };
 
       const result = await parcelsCollection.findOne(query);
       res.send(result);
-    })
-
+    });
 
     app.post("/parcels", async (req, res) => {
       const parcel = req.body;
@@ -64,7 +64,29 @@ async function run() {
       res.send(result);
     });
 
-    // all apis from here
+    // payment api(stripe)
+
+    app.post("/create-checkout-session", async (req, res) => {
+      const data = req.body;
+      const session = await stripe.checkout.sessions.create({
+        line_items: [
+          {
+            // Provide the exact Price ID (for example, price_1234) of the product you want to sell
+            price_data: {
+              currency: 'USD',
+              unit_amount: 1000,
+              product_data:{
+                name:data.parcelName
+              },
+            },
+            quantity: 1,
+          },
+        ],
+        customer_email : data.senderEmail,
+        mode: "payment",
+        success_url: `${process.env.MY_DOMAIN}/dashboard/payment-success.html`,
+      });
+    });
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
