@@ -66,14 +66,14 @@ async function run() {
 
     // payment api(stripe)
 
-    app.post("checkout-payment-session", async (req, res) => {
+    app.post("/checkout-payment-session", async (req, res) => {
       const parcelInfo = req.body;
 
       if (
-        !data.cost ||
-        !data.parcelId ||
-        !data.senderEmail ||
-        !data.parcelName
+        !parcelInfo.cost ||
+        !parcelInfo.parcelId ||
+        !parcelInfo.senderEmail ||
+        !parcelInfo.parcelName
       ) {
         return res
           .status(400)
@@ -93,7 +93,7 @@ async function run() {
               currency: "usd",
               unit_amount: amount,
               product_data: {
-                product_data: parcelInfo.parcelName,
+                name: parcelInfo.parcelName,
               },
             },
             quantity: 1,
@@ -105,10 +105,30 @@ async function run() {
         },
         customer_email: parcelInfo.senderEmail,
         success_url: `${process.env.MY_DOMAIN}/dashboard/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-        cancelled_url: `${process.env.MY_DOMAIN}/dashboard/payment-cancelled`,
+        cancel_url:`${process.env.MY_DOMAIN}/dashboard/payment-cancelled`,
       });
       res.send({ url: session.url });
     });
+
+    app.patch('/payment-sucess', async(req, res) => {
+      const sessionId = req.query.session_id;
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      // console.log(session)
+
+      if(session.payment_status === 'paid'){
+        const id = session.metadata.parcelId;
+        const query = {_id: new ObjectId(id)};
+        const update = {
+          $set:{
+            paymentStatus: 'paid',
+          }
+        }
+        const result = await parcelsCollection.updateOne(query, update);
+        res.send(result);
+      }
+
+      res.send({success: false});
+    })
 
     // app.post("/create-checkout-session", async (req, res) => {
     //   try {
