@@ -126,7 +126,16 @@ async function run() {
     app.patch('/payment-sucess', async(req, res) => {
       const sessionId = req.query.session_id;
       const session = await stripe.checkout.sessions.retrieve(sessionId);
-      console.log(session)
+      // console.log(session)
+
+      const transactionId = session.payment_intent;
+      const query = {transactionId: transactionId}
+
+      const paymentExist = await paymentCollection.findOne(query);
+
+      if(paymentExist){
+        return res.send({message: 'already exists', transactionId, trackingId: paymentExist.trackingId})
+      }
 
       const trackingId = generateTrackingId();
 
@@ -150,7 +159,7 @@ async function run() {
             transactionId: session.payment_intent,
             paymentStatus: session.payment_status,
             paidAt: new Date(),
-            trackingId: '',
+            trackingId: trackingId,
         }
 
         if(session.payment_status === 'paid'){
