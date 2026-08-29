@@ -29,6 +29,7 @@ async function run() {
 
     const db = client.db("zap-shift-db");
     const parcelsCollection = db.collection("parcels");
+    const paymentCollection = db.collection("payments")
 
     app.get("/parcels", async (req, res) => {
       const query = {};
@@ -113,7 +114,7 @@ async function run() {
     app.patch('/payment-sucess', async(req, res) => {
       const sessionId = req.query.session_id;
       const session = await stripe.checkout.sessions.retrieve(sessionId);
-      // console.log(session)
+      console.log(session)
 
       if(session.payment_status === 'paid'){
         const id = session.metadata.parcelId;
@@ -124,7 +125,23 @@ async function run() {
           }
         }
         const result = await parcelsCollection.updateOne(query, update);
-        res.send(result);
+
+        const paymentInfo = {
+            amount: session.amount_total / 100,
+            currency: session.currency,
+            customerEmail: session.customer_email,
+            parcelId: session.metadata.parcelId,
+            parcelName: session.metadata.parcelName,
+            transactionId: session.payment_intent,
+            paymentStatus: session.payment_status,
+            paidAt: new Date(),
+            trackingId: '',
+        }
+
+        if(session.payment_status === 'paid'){
+          const paymentResult = await paymentCollection.insertOne(paymentInfo);
+          res.send({success: true, modifyParcel: result, paymentInfo: paymentResult})
+        }
       }
 
       res.send({success: false});
