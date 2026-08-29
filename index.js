@@ -114,6 +114,7 @@ async function run() {
         mode: "payment",
         metadata: {
           parcelId: parcelInfo.parcelId,
+          parcelName: parcelInfo.parcelName,  
         },
         customer_email: parcelInfo.senderEmail,
         success_url: `${process.env.MY_DOMAIN}/dashboard/payment-success?session_id={CHECKOUT_SESSION_ID}`,
@@ -137,6 +138,7 @@ async function run() {
           message: "already exists",
           transactionId,
           trackingId: paymentExist.trackingId,
+          parcelName: session.metadata.parcelName,
         });
       }
 
@@ -149,6 +151,7 @@ async function run() {
           $set: {
             paymentStatus: "paid",
             trackingId: trackingId,
+            parcelName: session.metadata.parcelName,
           },
         };
         const result = await parcelsCollection.updateOne(query, update);
@@ -173,6 +176,7 @@ async function run() {
             trackingId: trackingId,
             transactionId: session.payment_intent,
             paymentInfo: paymentResult,
+            parcelName: session.metadata.parcelName,
           });
         }
       }
