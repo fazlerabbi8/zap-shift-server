@@ -12,6 +12,18 @@ dns.setServers(["8.8.8.8", "8.8.4.4"]);
 app.use(express.json());
 app.use(cors());
 
+// generate a tracking id
+const crypto = require('crypto');
+
+function generateTrackingId(prefix = 'PKG') {
+  const date = new Date();
+  const datePart = date.toISOString().slice(2, 10).replace(/-/g, ''); // YYMMDD
+  const randomPart = crypto.randomBytes(4).toString('hex').toUpperCase(); // 8 hex chars
+
+  return `${prefix}-${datePart}-${randomPart}`;
+}
+
+
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.edjhlsi.mongodb.net/?appName=Cluster0`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -116,12 +128,15 @@ async function run() {
       const session = await stripe.checkout.sessions.retrieve(sessionId);
       console.log(session)
 
+      const trackingId = generateTrackingId();
+
       if(session.payment_status === 'paid'){
         const id = session.metadata.parcelId;
         const query = {_id: new ObjectId(id)};
         const update = {
           $set:{
             paymentStatus: 'paid',
+            trackingId: trackingId,
           }
         }
         const result = await parcelsCollection.updateOne(query, update);
@@ -140,7 +155,7 @@ async function run() {
 
         if(session.payment_status === 'paid'){
           const paymentResult = await paymentCollection.insertOne(paymentInfo);
-          res.send({success: true, modifyParcel: result, paymentInfo: paymentResult})
+          res.send({success: true, modifyParcel: result, trackingId:trackingId, transactionId: session.payment_intent, paymentInfo: paymentResult})
         }
       }
 
