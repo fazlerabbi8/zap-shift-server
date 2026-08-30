@@ -21,9 +21,6 @@ if (!getApps().length) {
   });
 }
 
-
-
-
 app.use(express.json());
 app.use(cors());
 
@@ -38,11 +35,10 @@ const verifyFBToken = async (req, res, next) => {
 
   try {
     const idToken = token.split(" ")[1];
-   const decoded = await getAuth().verifyIdToken(idToken);
+    const decoded = await getAuth().verifyIdToken(idToken);
     console.log("decoded in the token", decoded);
     req.decoded_email = decoded.email;
     next();
-   
   } catch (err) {
     console.error("Token verification error:", err);
 
@@ -85,42 +81,73 @@ async function run() {
     const ridersCollection = db.collection("riders");
 
     // users related apis
-    app.post('/users', async(req, res) =>{
+    app.post("/users", async (req, res) => {
       const user = req.body;
-      user.role = 'user';
+      user.role = "user";
       user.createdAt = new Date();
       const email = user.email;
 
-      const userExists = await usersCollection.findOne({email});
+      const userExists = await usersCollection.findOne({ email });
 
-      if(userExists){
-        return res.send({message: 'user exists'})
+      if (userExists) {
+        return res.send({ message: "user exists" });
       }
 
       const result = await usersCollection.insertOne(user);
       res.send(result);
-    })
+    });
 
     // riders related apis
-    app.post('/riders', async(req, res) =>{
+    app.post("/riders", async (req, res) => {
       const rider = req.body;
-      rider.status = 'pendding';
+      rider.status = "pendding";
       rider.createdAt = new Date();
 
       const result = await ridersCollection.insertOne(rider);
       res.send(result);
-    })
+    });
 
-    app.get('/riders', async(req, res) =>{
+    app.get("/riders", async (req, res) => {
       const query = {};
-      if(req.query.status){
+      if (req.query.status) {
         query.status = req.query.status;
       }
-      const cursor  = ridersCollection.find(query);
+      const cursor = ridersCollection.find(query);
       const result = await cursor.toArray();
       res.send(result);
-    })
-    
+    });
+
+    app.patch("/riders/:id", async (req, res) => {
+      try {
+        const status = req.body.status;
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+
+        const updatedDoc = {
+          $set: {
+            status: status,
+          },
+        };
+
+        const result = await ridersCollection.updateOne(query, updatedDoc);
+        res.send(result);
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: "Failed to update rider status" });
+      }
+    });
+
+    // app.delete("/riders/:id", async (req, res) => {
+    //   try {
+    //     const id = req.params.id;
+    //     const query = { _id: new ObjectId(id) };
+    //     const result = await ridersCollection.deleteOne(query);
+    //     res.send(result);
+    //   } catch (error) {
+    //     console.error(error);
+    //     res.status(500).send({ message: "Failed to delete rider" });
+    //   }
+    // });
 
     app.get("/parcels", async (req, res) => {
       const query = {};
@@ -274,8 +301,8 @@ async function run() {
       if (email) {
         query.customerEmail = email;
 
-        if(email !== req.decoded_email){
-          return res.status(403).send({message: 'Forbidden access'})
+        if (email !== req.decoded_email) {
+          return res.status(403).send({ message: "Forbidden access" });
         }
       }
       const cursor = paymentCollection.find(query);
