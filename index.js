@@ -82,6 +82,7 @@ async function run() {
     const usersCollection = db.collection("users");
     const parcelsCollection = db.collection("parcels");
     const paymentCollection = db.collection("payments");
+    const ridersCollection = db.collection("riders");
 
     // users related apis
     app.post('/users', async(req, res) =>{
@@ -97,6 +98,16 @@ async function run() {
       }
 
       const result = await usersCollection.insertOne(user);
+      res.send(result);
+    })
+
+    // riders related apis
+    app.post('/riders', async(req, res) =>{
+      const rider = req.body;
+      rider.status = 'pendding';
+      rider.createdAt = new Date();
+
+      const result = await ridersCollection.insertOne(rider);
       res.send(result);
     })
 
