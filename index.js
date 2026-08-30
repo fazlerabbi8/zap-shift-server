@@ -79,8 +79,26 @@ async function run() {
     await client.connect();
 
     const db = client.db("zap-shift-db");
+    const usersCollection = db.collection("users");
     const parcelsCollection = db.collection("parcels");
     const paymentCollection = db.collection("payments");
+
+    // users related apis
+    app.post('/users', async(req, res) =>{
+      const user = req.body;
+      user.role = 'user';
+      user.createdAt = new Date();
+      const email = user.email;
+
+      const userExists = await usersCollection.findOne({email});
+
+      if(userExists){
+        return res.send({message: 'user exists'})
+      }
+
+      const result = await usersCollection.insertOne(user);
+      res.send(result);
+    })
 
     app.get("/parcels", async (req, res) => {
       const query = {};
