@@ -117,7 +117,7 @@ async function run() {
       res.send(result);
     });
 
-    app.patch("/riders/:id", async (req, res) => {
+    app.patch("/riders/:id", verifyFBToken, async (req, res) => {
       try {
         const status = req.body.status;
         const id = req.params.id;
@@ -130,6 +130,17 @@ async function run() {
         };
 
         const result = await ridersCollection.updateOne(query, updatedDoc);
+
+        if(status === 'approved'){
+          const email = req.body.email;
+          const userQuery = {email};
+          const updateUser = {
+            $set: {
+              role: 'rider'
+            }
+          }
+          const userResult = await usersCollection.updateOne(userQuery, updateUser);
+        }
         res.send(result);
       } catch (error) {
         console.error(error);
@@ -137,17 +148,19 @@ async function run() {
       }
     });
 
-    // app.delete("/riders/:id", async (req, res) => {
-    //   try {
-    //     const id = req.params.id;
-    //     const query = { _id: new ObjectId(id) };
-    //     const result = await ridersCollection.deleteOne(query);
-    //     res.send(result);
-    //   } catch (error) {
-    //     console.error(error);
-    //     res.status(500).send({ message: "Failed to delete rider" });
-    //   }
-    // });
+    app.delete("/riders/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const result = await ridersCollection.deleteOne(query);
+        res.send(result);
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: "Failed to delete rider" });
+      }
+    });
+
+    // parcels related apis
 
     app.get("/parcels", async (req, res) => {
       const query = {};
