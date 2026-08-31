@@ -81,9 +81,16 @@ async function run() {
     const ridersCollection = db.collection("riders");
 
     // middleware for database access(admin)
-    const verifyAdmin = (req, res, next) =>{
-      next()
-    }
+    const verifyAdmin = async (req, res, next) => {
+      const email = req.decoded_email;
+      const query = { email };
+      const user = await usersCollection.findOne(query);
+
+      if (!user || user.role !== "admin") {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+      next();
+    };
 
     // users related apis
     app.post("/users", async (req, res) => {
@@ -103,32 +110,66 @@ async function run() {
     });
 
     app.get("/users", async (req, res) => {
-      const cursor = usersCollection.find();
-      const result = await cursor.toArray();
-      res.send(result);
+      try {
+        const { searchText } = req.query;
+
+        let query = {};
+
+        if (searchText) {
+          query = {
+            $or: [
+              {
+                name: {
+                  $regex: searchText,
+                  $options: "i",
+                },
+              },
+              {
+                email: {
+                  $regex: searchText,
+                  $options: "i",
+                },
+              },
+            ],
+          };
+        }
+
+        const users = await usersCollection.find(query).toArray();
+
+        res.send(users);
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({
+          message: "Failed to fetch users",
+        });
+      }
     });
 
-    app.patch("/users/:id/role", verifyFBToken, async (req, res) => {
-      const { id } = req.params;
-      const { role } = req.body;
+    app.patch(
+      "/users/:id/role",
+      verifyFBToken,
+      verifyAdmin,
+      async (req, res) => {
+        const { id } = req.params;
+        const { role } = req.body;
 
-      const query = { _id: new ObjectId(id) };
+        const query = { _id: new ObjectId(id) };
 
-      const result = await usersCollection.updateOne(query, {
-        $set: { role },
-      });
+        const result = await usersCollection.updateOne(query, {
+          $set: { role },
+        });
 
-      res.send(result);
-    });
-
+        res.send(result);
+      },
+    );
 
     // role related apis
-    app.get('/users/:email/role', async(req, res) =>{
+    app.get("/users/:email/role", async (req, res) => {
       const email = req.params.email;
-      const query = {email};
+      const query = { email };
       const user = await usersCollection.findOne(query);
-      res.send({role: user?.role || 'user'});
-    })
+      res.send({ role: user?.role || "user" });
+    });
 
     // riders related apis
     app.post("/riders", async (req, res) => {
@@ -150,7 +191,7 @@ async function run() {
       res.send(result);
     });
 
-    app.patch("/riders/:id", verifyFBToken, async (req, res) => {
+    app.patch("/riders/:id", verifyFBToken, verifyAdmin, async (req, res) => {
       try {
         const status = req.body.status;
         const id = req.params.id;
@@ -184,7 +225,7 @@ async function run() {
       }
     });
 
-    app.delete("/riders/:id", async (req, res) => {
+    app.delete("/riders/:id", verifyFBToken, verifyAdmin, async (req, res) => {
       try {
         const id = req.params.id;
         const query = { _id: new ObjectId(id) };
