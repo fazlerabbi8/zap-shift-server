@@ -97,6 +97,25 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/users", async (req, res) => {
+      const cursor = usersCollection.find();
+      const result = await cursor.toArray();
+      res.send(result);
+    });
+
+    app.patch("/users/:id", async (req, res) => {
+      const { id } = req.params;
+      const { role } = req.body;
+
+      const query = { _id: new ObjectId(id) };
+
+      const result = await usersCollection.updateOne(query, {
+        $set: { role },
+      });
+
+      res.send(result);
+    });
+
     // riders related apis
     app.post("/riders", async (req, res) => {
       const rider = req.body;
@@ -131,15 +150,18 @@ async function run() {
 
         const result = await ridersCollection.updateOne(query, updatedDoc);
 
-        if(status === 'approved'){
+        if (status === "approved") {
           const email = req.body.email;
-          const userQuery = {email};
+          const userQuery = { email };
           const updateUser = {
             $set: {
-              role: 'rider'
-            }
-          }
-          const userResult = await usersCollection.updateOne(userQuery, updateUser);
+              role: "rider",
+            },
+          };
+          const userResult = await usersCollection.updateOne(
+            userQuery,
+            updateUser,
+          );
         }
         res.send(result);
       } catch (error) {
