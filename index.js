@@ -241,7 +241,11 @@ async function run() {
 
     app.get("/parcels", async (req, res) => {
       const query = {};
-      const { email } = req.query;
+      const { email, penddingStatus } = req.query;
+
+      if(penddingStatus){
+        query.penddingStatus = penddingStatus
+      }
 
       const options = { sort: { createdAt: -1 } };
 
@@ -348,6 +352,7 @@ async function run() {
           $set: {
             paymentStatus: "paid",
             trackingId: trackingId,
+            penddingStatus: 'pendding-pickup',
             parcelName: session.metadata.parcelName,
           },
         };
