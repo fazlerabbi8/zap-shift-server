@@ -148,7 +148,6 @@ async function run() {
     app.patch(
       "/users/:id/role",
       verifyFBToken,
-      verifyAdmin,
       async (req, res) => {
         const { id } = req.params;
         const { role } = req.body;
@@ -182,16 +181,23 @@ async function run() {
     });
 
     app.get("/riders", async (req, res) => {
+      const { status, workStatus, district } = req.query;
       const query = {};
-      if (req.query.status) {
-        query.status = req.query.status;
+      if (status) {
+        query.status = status;
+      }
+      if (workStatus) {
+        query.workStatus = workStatus;
+      }
+      if (district) {
+        query.district = district;
       }
       const cursor = ridersCollection.find(query);
       const result = await cursor.toArray();
       res.send(result);
     });
 
-    app.patch("/riders/:id", verifyFBToken, verifyAdmin, async (req, res) => {
+    app.patch("/riders/:id", verifyFBToken, async (req, res) => {
       try {
         const status = req.body.status;
         const id = req.params.id;
@@ -200,6 +206,7 @@ async function run() {
         const updatedDoc = {
           $set: {
             status: status,
+            workStatus: "available",
           },
         };
 
@@ -225,7 +232,7 @@ async function run() {
       }
     });
 
-    app.delete("/riders/:id", verifyFBToken, verifyAdmin, async (req, res) => {
+    app.delete("/riders/:id", verifyFBToken,verifyAdmin, async (req, res) => {
       try {
         const id = req.params.id;
         const query = { _id: new ObjectId(id) };
@@ -243,8 +250,8 @@ async function run() {
       const query = {};
       const { email, penddingStatus } = req.query;
 
-      if(penddingStatus){
-        query.penddingStatus = penddingStatus
+      if (penddingStatus) {
+        query.penddingStatus = penddingStatus;
       }
 
       const options = { sort: { createdAt: -1 } };
@@ -268,6 +275,37 @@ async function run() {
       const result = await parcelsCollection.insertOne(parcel);
       res.send(result);
     });
+
+    // assign riders for parels
+    app.patch('/parcels/:id', async(req, res) =>{
+      const {riderId,riderEmail, riderName, parclId} = req.body;
+
+      const id = req.params.id;
+
+      const query = {_id: new ObjectId(id)};
+
+      const updateDoc = {
+        $set:{
+          penddingStatus: 'driver-assigned',
+          riderId:riderId,
+          riderEmail:riderEmail,
+          riderName:riderName
+        }
+      }
+
+      const ParcelResult = await parcelsCollection.updateOne(query, updateDoc);
+
+      // update rider info
+
+      const riderQuery = {_id: new ObjectId(riderId)};
+      const riderUpdateDoc = {
+        $set:{
+          workStatus: 'in-delivary',
+        }
+      }
+      const riderResult = await ridersCollection.updateOne(riderQuery, riderUpdateDoc);
+      res.send(riderResult);
+    })
 
     app.delete("/parcels/:id", async (req, res) => {
       const id = req.params.id;
@@ -352,7 +390,7 @@ async function run() {
           $set: {
             paymentStatus: "paid",
             trackingId: trackingId,
-            penddingStatus: 'pendding-pickup',
+            penddingStatus: "pendding-pickup",
             parcelName: session.metadata.parcelName,
           },
         };
