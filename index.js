@@ -145,22 +145,18 @@ async function run() {
       }
     });
 
-    app.patch(
-      "/users/:id/role",
-      verifyFBToken,
-      async (req, res) => {
-        const { id } = req.params;
-        const { role } = req.body;
+    app.patch("/users/:id/role", verifyFBToken, async (req, res) => {
+      const { id } = req.params;
+      const { role } = req.body;
 
-        const query = { _id: new ObjectId(id) };
+      const query = { _id: new ObjectId(id) };
 
-        const result = await usersCollection.updateOne(query, {
-          $set: { role },
-        });
+      const result = await usersCollection.updateOne(query, {
+        $set: { role },
+      });
 
-        res.send(result);
-      },
-    );
+      res.send(result);
+    });
 
     // role related apis
     app.get("/users/:email/role", async (req, res) => {
@@ -232,7 +228,7 @@ async function run() {
       }
     });
 
-    app.delete("/riders/:id", verifyFBToken,verifyAdmin, async (req, res) => {
+    app.delete("/riders/:id", verifyFBToken, verifyAdmin, async (req, res) => {
       try {
         const id = req.params.id;
         const query = { _id: new ObjectId(id) };
@@ -261,6 +257,22 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/parcels/rider", async (req, res) => {
+      const { riderEmail, penddingStatus } = req.query;
+      const query = {};
+
+      if (riderEmail) {
+        query.riderEmail = riderEmail;
+      }
+      if (penddingStatus) {
+        query.penddingStatus = penddingStatus;
+      }
+
+      const cursor = parcelsCollection.find(query);
+      const result = await cursor.toArray();
+      res.send(result);
+    });
+
     app.get("/parcels/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
@@ -277,35 +289,38 @@ async function run() {
     });
 
     // assign riders for parels
-    app.patch('/parcels/:id', async(req, res) =>{
-      const {riderId,riderEmail, riderName, parclId} = req.body;
+    app.patch("/parcels/:id", async (req, res) => {
+      const { riderId, riderEmail, riderName, parclId } = req.body;
 
       const id = req.params.id;
 
-      const query = {_id: new ObjectId(id)};
+      const query = { _id: new ObjectId(id) };
 
       const updateDoc = {
-        $set:{
-          penddingStatus: 'driver-assigned',
-          riderId:riderId,
-          riderEmail:riderEmail,
-          riderName:riderName
-        }
-      }
+        $set: {
+          penddingStatus: "driver-assigned",
+          riderId: riderId,
+          riderEmail: riderEmail,
+          riderName: riderName,
+        },
+      };
 
       const ParcelResult = await parcelsCollection.updateOne(query, updateDoc);
 
       // update rider info
 
-      const riderQuery = {_id: new ObjectId(riderId)};
+      const riderQuery = { _id: new ObjectId(riderId) };
       const riderUpdateDoc = {
-        $set:{
-          workStatus: 'in-delivary',
-        }
-      }
-      const riderResult = await ridersCollection.updateOne(riderQuery, riderUpdateDoc);
+        $set: {
+          workStatus: "in-delivary",
+        },
+      };
+      const riderResult = await ridersCollection.updateOne(
+        riderQuery,
+        riderUpdateDoc,
+      );
       res.send(riderResult);
-    })
+    });
 
     app.delete("/parcels/:id", async (req, res) => {
       const id = req.params.id;
