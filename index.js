@@ -265,13 +265,25 @@ async function run() {
         query.riderEmail = riderEmail;
       }
       if (penddingStatus) {
-        query.penddingStatus = penddingStatus;
+        query.penddingStatus = {$in : ['driver-assigned','rider-arriving']};
       }
 
       const cursor = parcelsCollection.find(query);
       const result = await cursor.toArray();
       res.send(result);
     });
+
+    app.patch('/parcels/:id/status', async(req, res) =>{
+      const {penddingStatus} = req.body;
+      const query = {_id: new ObjectId(req.params.id)};
+      const updatedDoc = {
+        $set: {
+          penddingStatus : penddingStatus,
+        }
+      }
+      const result = await parcelsCollection.updateOne(query, updatedDoc);
+      res.send(result);
+    })
 
     app.get("/parcels/:id", async (req, res) => {
       const id = req.params.id;
