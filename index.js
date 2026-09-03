@@ -50,6 +50,7 @@ const verifyFBToken = async (req, res, next) => {
 
 // generate a tracking id
 const crypto = require("crypto");
+const { log } = require("console");
 
 function generateTrackingId(prefix = "PKG") {
   const date = new Date();
@@ -79,6 +80,7 @@ async function run() {
     const parcelsCollection = db.collection("parcels");
     const paymentCollection = db.collection("payments");
     const ridersCollection = db.collection("riders");
+    const trackingCollections = db.collection("trackings");
 
     // middleware for database access(admin)
     const verifyAdmin = async (req, res, next) => {
@@ -91,6 +93,18 @@ async function run() {
       }
       next();
     };
+
+    // tracking log
+    const logTracking = async(trackingId, status) =>{
+      const log = {
+        status,
+        trackingId,
+        details:status.split('-').join(' '),
+        createdAt: new Date()
+      }
+      const result = await trackingCollections.insertOne(log);
+      return result
+    }
 
     // users related apis
     app.post("/users", async (req, res) => {
@@ -264,8 +278,12 @@ async function run() {
       if (riderEmail) {
         query.riderEmail = riderEmail;
       }
-      if (penddingStatus) {
-        query.penddingStatus = {$in : ['driver-assigned','rider-arriving']};
+      if (penddingStatus !== 'parcel-delivered') {
+        // query.penddingStatus = {$in : ['driver-assigned','rider-arriving']};
+        query.penddingStatus = { $nin: ["parcel-delivered"] };
+      }
+      else{
+        query.penddingStatus = penddingStatus;
       }
 
       const cursor = parcelsCollection.find(query);
@@ -273,17 +291,33 @@ async function run() {
       res.send(result);
     });
 
-    app.patch('/parcels/:id/status', async(req, res) =>{
-      const {penddingStatus} = req.body;
-      const query = {_id: new ObjectId(req.params.id)};
+    app.patch("/parcels/:id/status", async (req, res) => {
+      const { penddingStatus, riderId, trackingId } = req.body;
+      const query = { _id: new ObjectId(req.params.id) };
       const updatedDoc = {
         $set: {
-          penddingStatus : penddingStatus,
-        }
+          penddingStatus: penddingStatus,
+        },
+      };
+      if (penddingStatus === "parcel-delivered") {
+        // update rider info
+
+        const riderQuery = { _id: new ObjectId(riderId) };
+        const riderUpdateDoc = {
+          $set: {
+            workStatus: "available",
+          },
+        };
+        const riderResult = await ridersCollection.updateOne(
+          riderQuery,
+          riderUpdateDoc,
+        );
       }
       const result = await parcelsCollection.updateOne(query, updatedDoc);
+      // log tracking
+      logTracking(trackingId, penddingStatus);
       res.send(result);
-    })
+    });
 
     app.get("/parcels/:id", async (req, res) => {
       const id = req.params.id;
@@ -302,7 +336,7 @@ async function run() {
 
     // assign riders for parels
     app.patch("/parcels/:id", async (req, res) => {
-      const { riderId, riderEmail, riderName, parclId } = req.body;
+      const { riderId, riderEmail, riderName, trackingId } = req.body;
 
       const id = req.params.id;
 
@@ -331,6 +365,10 @@ async function run() {
         riderQuery,
         riderUpdateDoc,
       );
+
+      // log tracking
+
+      logTracking(trackingId, 'driver-assigned');
       res.send(riderResult);
     });
 
@@ -437,6 +475,11 @@ async function run() {
 
         if (session.payment_status === "paid") {
           const paymentResult = await paymentCollection.insertOne(paymentInfo);
+
+          // log tracking
+
+          logTracking(trackingId, 'pendding-pickup');
+
           res.send({
             success: true,
             modifyParcel: result,
