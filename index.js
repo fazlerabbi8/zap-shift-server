@@ -512,58 +512,6 @@ async function run() {
       res.send(result);
     });
 
-    // app.post("/create-checkout-session", async (req, res) => {
-    //   try {
-    //     const data = req.body;
-
-    //     // Validate required fields
-    //     if (
-    //       !data.cost ||
-    //       !data.parcelId ||
-    //       !data.senderEmail ||
-    //       !data.parcelName
-    //     ) {
-    //       return res
-    //         .status(400)
-    //         .send({ error: "Missing required payment information" });
-    //     }
-
-    //     // Convert cost to cents, correctly handling decimals
-    //     const amount = Math.round(parseFloat(data.cost) * 100);
-
-    //     if (isNaN(amount) || amount <= 0) {
-    //       return res.status(400).send({ error: "Invalid cost value" });
-    //     }
-
-    //     const session = await stripe.checkout.sessions.create({
-    //       line_items: [
-    //         {
-    //           price_data: {
-    //             currency: "usd", // lowercase, as Stripe expects
-    //             unit_amount: amount, // now correctly in cents
-    //             product_data: {
-    //               name: data.parcelName,
-    //             },
-    //           },
-    //           quantity: 1,
-    //         },
-    //       ],
-    //       customer_email: data.senderEmail,
-    //       mode: "payment",
-    //       metadata: {
-    //         parcelId: data.parcelId,
-    //       },
-    //       success_url: `${process.env.MY_DOMAIN}/dashboard/payment-success`,
-    //       cancel_url: `${process.env.MY_DOMAIN}/dashboard/payment-canceled`,
-    //     });
-
-    //     res.send({ url: session.url });
-    //   } catch (err) {
-    //     console.error("Stripe session creation failed:", err);
-    //     res.status(500).send({ error: err.message });
-    //   }
-    // });
-
     // trackings related apis
     app.get('/trackings/:trackingId/logs', async(req, res) =>{
       const trackingId = req.params.trackingId;
