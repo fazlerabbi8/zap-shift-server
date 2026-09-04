@@ -551,8 +551,4 @@ app.get("/", (req, res) => {
   res.send("zap shift running.......");
 });
 
-app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`);
-});
-
 module.exports = app;
