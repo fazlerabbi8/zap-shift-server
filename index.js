@@ -7,9 +7,6 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
 const stripe = require("stripe")(process.env.STRIPE_KEY);
 
-const dns = require("dns");
-dns.setServers(["8.8.8.8", "8.8.4.4"]);
-
 // Firebase Admin
 const { initializeApp, cert, getApps } = require("firebase-admin/app");
 const { getAuth } = require("firebase-admin/auth");
