@@ -5,6 +5,21 @@ require("dotenv").config();
 const port = process.env.PORT || 5000;
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
+
+const dns = require("dns");
+const { userInfo } = require("os");
+dns.setServers(["8.8.8.8", "1.1.1.1"]);
+
+// ---- ENV CHECK (temporary debug log, safe to remove later) ----
+// console.log("ENV CHECK:", {
+//   hasStripe: !!process.env.STRIPE_KEY,
+//   hasFB: !!process.env.FB_SERVICE_KEY,
+//   hasDbUser: !!process.env.DB_USER,
+//   hasDbPass: !!process.env.DB_PASS,
+//   hasDomain: !!process.env.MY_DOMAIN,
+// });
+// -----------
+
 const stripe = require("stripe")(process.env.STRIPE_KEY);
 
 // Firebase Admin
