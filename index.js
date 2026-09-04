@@ -513,7 +513,6 @@ async function run() {
       const email = req.query.email;
       const query = {};
 
-      // console.log(req.headers);
 
       if (email) {
         query.customerEmail = email;
