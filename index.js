@@ -11,14 +11,8 @@ const stripe = require("stripe")(process.env.STRIPE_KEY);
 const { initializeApp, cert, getApps } = require("firebase-admin/app");
 const { getAuth } = require("firebase-admin/auth");
 
-let serviceAccount;
-try {
-  const decoded = Buffer.from(process.env.FB_SERVICE_KEY, 'base64').toString('utf8')
-  serviceAccount = JSON.parse(decoded);
-} catch (err) {
-  console.error("FAILED to parse FB_SERVICE_KEY:", err.message);
-  throw err;
-}
+const decoded = Buffer.from(process.env.FB_SERVICE_KEY, 'base64').toString('utf8')
+const serviceAccount = JSON.parse(decoded);
 
 if (!getApps().length) {
   initializeApp({
